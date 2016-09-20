@@ -8,6 +8,7 @@
 #include <deque>
 #include "CacheLine.h"
 #include "BaseCache.h"
+#include "CacheL2.h"
 
 using namespace std;
 
@@ -15,8 +16,9 @@ class CacheL1: public BaseCache {
   public:
     void readAddr(long long inAddr, long inCyc);
     void writeAddr(long long inAddr, long inCyc);
-    void sendMemReq(long long inAddr, int inSet, int inWay, int inDirty, long inCyc);
-    void processActiveReloads(long inCyc);
+    void processActiveReqs(long inCyc);
+    void processWriteback(long inCyc);
+    void writeL1(long long inAddr);
 };
 
 #endif

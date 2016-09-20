@@ -14,21 +14,22 @@ using namespace std;
 class BaseCache {
   public:
     BaseCache();
-    //non virtual functions
     void setAssoc(int inAssoc)         { mAssoc = inAssoc; }
     void setCacheSize(int inCacheSize) { mCache_size = inCacheSize; }
     void setBlockSize(int inBlockSize) { mBlock_size = inBlockSize; }
     void setHitLatency(int inLat)      { mHitLat = inLat; }
     void setMemLatency(int inLat)      { mMemLat = inLat; }
     void init_Cache();
-    virtual void readAddr(long long inAddr, long inCyc)=0;
-    virtual void writeAddr(long long inAddr, long inCyc)=0;
     void updateLRU(int inSet, int inWay);
+    void queueReq(long long inAddr, int inSet, int inWay, int inDirty, long inCyc);
+    void queueWb(long long inAddr, int inSet, int inWay, int inDirty, long inCyc);
     void allocateLine(long long inAddr, long long inTag, int inSet, int inWay, int inDirty);
     bool searchTag(long long inAddr, int &inSet, int &inWay);
-    virtual void sendMemReq(long long inAddr, int inSet, int inWay, int inDirty, long inCyc)=0;
-    virtual void processActiveReloads(long inCyc)=0;
-    int  getWaytoAllocate(long long inAddr);
+    virtual void readAddr(long long inAddr, long inCyc)=0;
+    virtual void writeAddr(long long inAddr, long inCyc)=0;
+    virtual void processActiveReqs(long inCyc)=0;
+    virtual void processWriteback(long inCyc)=0; 
+    int  getWaytoAllocate(long long inAddr, long inCyc);
     int  getSet(long long inAddr);
     long long getTag(long long inAddr);
     long int  getTotalReferences() { return (mRead_Reqs+mWrite_Reqs); }
@@ -44,6 +45,7 @@ class BaseCache {
       int cnt;
       long cyc;
       int dirty;
+      int rd_sent;
     };
   protected:  
     bool g_Debug;
@@ -65,6 +67,7 @@ class BaseCache {
     long int mLatency;
     long int mReferences;
     deque<reloadPkt> mActiveRld;
+    deque<reloadPkt> mActiveWb;
 };
 
 #endif

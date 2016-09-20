@@ -17,6 +17,7 @@ class CacheLine {
     bool isValid()               { return (mValid==1); }
     long long  getTag()          { return mTag; }
     int  getLRU()                { return mLRU; }
+    int  isDirty()               { return (mDirty!=0); }
   private:                                  
     long long mTag;                               
     int mLRU;  

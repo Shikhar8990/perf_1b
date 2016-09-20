@@ -31,7 +31,8 @@ bool checkPowof2(int num) {
 int main(int argc, char **argv) {
   ifstream inFile(argv[1]);
   string line;
-  bool g_Debug = true;
+  bool g_Debug = 1;
+  int mem_lat=0;
   while(getline(inFile, line)) {
     //istringstream iss(line);
     char *seg = NULL;
@@ -73,12 +74,13 @@ int main(int argc, char **argv) {
       } else if(parm == "mem_lat") {
         mCacheL1.setMemLatency(0);
         mCacheL2.setMemLatency(val);
+        mem_lat = val;
       } else if(parm == "l2_cap") {
         if(!checkPowof2(val)) {                                   
           cout<<" ERROR: Parameter not a power of 2 "<<parm<<endl;
           exit(0);                                                
         }                                                         
-        mCacheL2.setCacheSize(8*1024);
+        mCacheL2.setCacheSize(val*1024*1024);
       } else if(parm == "l2_assoc") {
          if(!checkPowof2(val)) {                                   
            cout<<" ERROR: Parameter not a power of 2 "<<parm<<endl;
@@ -98,9 +100,9 @@ int main(int argc, char **argv) {
   mCacheL2.init_Cache();
   ifstream inFile1(argv[2]);
   char *line_tr = NULL;
+  long cycle;
   while(getline(inFile1, line)) {
     int cnt=0, r_w=0;
-    long cycle;
     long long addr;
     char *line_tr = &line[0];
     char *seg = NULL;
@@ -115,7 +117,10 @@ int main(int argc, char **argv) {
         seg = strtok(NULL, ",");
         cnt++;
       }
-      mCacheL1.processActiveReloads(cycle);
+      mCacheL1.processActiveReqs(cycle);
+      mCacheL2.processActiveReqs(cycle);
+      mCacheL1.processWriteback(cycle);
+      mCacheL2.processWriteback(cycle);
       if(r_w == 1) {
         if(g_Debug) cout<<"Cyc:"<<hex<<cycle<<dec<<" Read Request for Addr:"<<hex<<addr<<dec<<endl; 
         mCacheL1.readAddr(addr, cycle);
@@ -126,6 +131,11 @@ int main(int argc, char **argv) {
       }
     }
   }
+  mCacheL1.processActiveReqs(cycle+mem_lat);
+  mCacheL2.processActiveReqs(cycle+mem_lat);
+  mCacheL1.processWriteback(cycle+mem_lat);
+  mCacheL2.processWriteback(cycle+mem_lat);
+
   if(g_Debug) cout<<" Results L1 "<<endl<<" Hits: "<<mCacheL1.getHits()<<endl<<" Misses: "
                   <<mCacheL1.getMisses()<<endl<<" Latency: "<<mCacheL1.getTotalLatency()
                   <<endl<<" References: "<<mCacheL1.getReferences()<<endl;
@@ -133,8 +143,10 @@ int main(int argc, char **argv) {
                   <<mCacheL2.getMisses()<<endl<<" Latency: "<<mCacheL2.getTotalLatency()
                   <<endl<<" References: "<<mCacheL2.getReferences()<<endl;
   cout<<"L1 hit rate: "<<fixed<<setprecision(2)<<(float(mCacheL1.getHits())/(float(mCacheL1.getReferences())))<<endl
-      <<"Total latency: "<<mCacheL1.getTotalLatency()<<endl
+      <<"L2 hit rate: "<<fixed<<setprecision(2)<<(float(mCacheL2.getHits())/(float(mCacheL2.getReferences())))<<endl
+      <<"Total latency: "<<mCacheL1.getTotalLatency()+mCacheL2.getTotalLatency()<<endl
       <<"L1 references: "<<mCacheL1.getReferences()<<endl
-      <<"AMAT: "<<fixed<<setprecision(2)<<((float(mCacheL1.getTotalLatency()))/(float(mCacheL1.getReferences())))<<endl;
+      <<"L2 references: "<<mCacheL2.getReferences()<<endl
+      <<"AMAT: "<<fixed<<setprecision(2)<<((float(mCacheL1.getTotalLatency()+mCacheL2.getTotalLatency()))/(float(mCacheL1.getReferences())))<<endl;
   return 0;
 }
